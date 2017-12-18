@@ -1,18 +1,18 @@
 import numpy as np
-from enum import Enum
+from enum import IntEnum
 import sys
 import copy
 
 class MoveException(Exception):
     pass
 
-class Winner(Enum):
+class Winner(IntEnum):
     SOUTH = 0
     NORTH = 1
     DRAW = 2
     UNKNOWN = 3
 
-class Side(Enum):
+class Side(IntEnum):
     SOUTH = 0
     NORTH = 1
     def opposite(self):
@@ -56,7 +56,7 @@ class Board(object):
     def __finished_in_store(self, finish_index, side):
         n = self.buckets.size
         right_index = int(n//2-1) if side == Side.SOUTH else n-1
-        finished_in_store = right_index == finish_index
+        return right_index == finish_index
     
     def __normal_move(self, index):
         n = self.buckets.size
@@ -114,6 +114,8 @@ class State(object):
     
     def __init__(self, no_of_holes=6, no_of_seeds=4):       
         self.set_starting_position(no_of_holes, no_of_seeds)
+        self.used_pie_rule = False
+        self.players = np.array([Side.SOUTH, Side.NORTH])
         
     def set_starting_position(self, no_of_holes=6, no_of_seeds=4):
         self.current_player = Side.SOUTH
@@ -149,11 +151,17 @@ class State(object):
     def move(self, index):
         if self.is_game_over():
             raise MoveException("Can't move because game is over.")
-        if index == -1:
-            self.use_pie_rule()
-            return
         index = self.__validate_index(index, self.current_player)
         self.current_player = self.board.move(index, self.current_player) 
+
+    def use_pie_rule(self):
+        if not self.is_pie_rule_on:
+            raise MoveException("Can't use pie rule, this game is played without it.")
+        if self.moves_made == 1:
+            self.__players_change_sides()
+            self.used_pie_rule = True
+        else:
+            raise MoveException("The game is not right after the first move, so pie rule is not applicable.")
         
     def get_valid_moves(self):
         empty_holes = self.board.get_holes(self.current_player) != 0
@@ -173,6 +181,9 @@ class State(object):
         if out_of_bounds:
             raise ValueError('The following index is out of bounds: ' + str(index))
         return index if side == Side.SOUTH else index + half
+
+    def __players_change_sides(self):
+        self.players = np.flip(self.players, axis=0)
     
 class Game(object):
     def __init__(self, no_of_holes=6, no_of_seeds=4, pie_rule=False, print_results=True):
@@ -180,9 +191,8 @@ class Game(object):
         self.current_state = State(no_of_holes, no_of_seeds)
         self.print_results = print_results
         self.winner = Winner.UNKNOWN
-        self.players = np.array([Side.SOUTH, Side.NORTH])
-        self.is_pie_rule_on = pie_rule
         self.moves_made = 0
+        self.is_pie_rule_on = pie_rule
         
     def load(self):
         pass
@@ -198,24 +208,23 @@ class Game(object):
     
     def apply_move(self, index):
         self.history.append(copy.deepcopy(self.current_state))
+        if index == -1 and not self.is_pie_rule_on:
+            print ('You cannot use pie rule now.')
+            return
         self.current_state.move(index)
-        if (index != -1):
-            self.moves_made += 1
+        self.moves_made += 1
         if (self.game_over()):
             self.winner = self.current_state.get_winner()
             if self.print_results:
                 self.__announce_winner()
+
+    def undo_last_move(self):
+        self.current_state = self.history.pop()
+        self.winner = Winner.UNKNOWN
+        self.moves_made -= 1
          
     def game_over(self):
         return self.current_state.is_game_over()
-
-    def use_pie_rule(self):
-        if not self.is_pie_rule_on:
-            raise MoveException("Can't use pie rule, this game is played without it.")
-        if self.moves_made == 1:
-            self.__players_change_sides()
-        else:
-            raise MoveException("The game is not right after the first move, so pie rule is not applicable.")
     
     def __announce_winner(self):
         self.current_state.show()
@@ -223,8 +232,6 @@ class Game(object):
         print('Game over. Winner is: ' + str(self.winner), end=' ')
         print('(' + str(south_seeds) + ' - ' + str(north_seeds) + ')')
 
-    def __players_change_sides(self):
-        self.players = np.flip(self.players, axis=0)
 
 
         
