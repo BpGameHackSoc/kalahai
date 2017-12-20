@@ -200,7 +200,7 @@ class Game(object):
     def save(self):
         pass
 
-    def get_valid_moves():
+    def get_valid_moves(self):
         pseudo_valid_moves = self.current_state.get_valid_moves()
         can_swap = self.is_pie_rule_on and self.moves_made == 1
         valid_moves = np.append(pseudo_valid_moves, -1) if can_swap else pseudo_valid_moves
