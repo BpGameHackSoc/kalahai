@@ -1,12 +1,14 @@
-from . import RandomAgent
-from . import AlphaBeta
+import importlib
 import model
 import numpy as np
+import sys
+import os
 
 from importlib import reload
-reload(AlphaBeta)
-reload(RandomAgent)
-reload(model)
+# reload(AlphaBeta)
+# reload(RandomAgent)
+# reload(model)
+# reload(AlphaBetaOwnSeeds)
 
 bot1,bot2 = None,None
 def run_competition(str_bot1, str_bot2, react_time=1, buckets=6, seeds=4,
@@ -24,6 +26,7 @@ def run_competition(str_bot1, str_bot2, react_time=1, buckets=6, seeds=4,
         move_count = 0
         bot1.init_counters()
         bot2.init_counters()
+        players = [bot1,bot2]
 
         game = model.Game(buckets, seeds, pie_rule, print_results=False)
         while not game.game_over():  # Calculate one move per loop
@@ -36,8 +39,6 @@ def run_competition(str_bot1, str_bot2, react_time=1, buckets=6, seeds=4,
             if print_states:
                 print(game.current_state.players)
                 game.current_state.show()
-            #statictics
-            move_count +=1
         if game.winner == model.Winner.DRAW:
             wins += 0.5
         else:
@@ -48,8 +49,8 @@ def run_competition(str_bot1, str_bot2, react_time=1, buckets=6, seeds=4,
         bot1.avg_ne_across_g += bot1.get_avg_evals()
         bot2.avg_ne_across_g += bot2.get_avg_evals()
 
-    print ("1st agent was {} and scored: {} with {} number of average evaluations across games".format(bot1.name,str(wins[0]),bot1.avg_ne_across_g/no_of_games))
-    print("2st agent was {} and scored: {} with {} number of average evaluations across games".format(bot2.name,
+    print ("1st agent was {} and scored: {} with {} number of average evaluations across games".format(bot1.get_name(),str(wins[0]),bot1.avg_ne_across_g/no_of_games))
+    print("2st agent was {} and scored: {} with {} number of average evaluations across games".format(bot2.get_name,
                                                                                                       str(wins[1]),
                                                                                                       bot2.avg_ne_across_g/no_of_games))
 
@@ -58,8 +59,11 @@ def run_competition(str_bot1, str_bot2, react_time=1, buckets=6, seeds=4,
 
 
 def get_agent(str_bot, depth=None,react_time=None):
-    if str_bot == 'random':
-        return RandomAgent.RandomAgent()
-    if str_bot == 'alpha_beta':
-        return AlphaBeta.AlphaBeta(depth,react_time)
+    """Load strbot.strbot class as we expect all agent to be included this way"""
+    top_dir = os.path.basename(os.path.dirname(os.path.abspath(__file__)))
+    module=  importlib.import_module("."+str_bot,top_dir)
+    #module = getattr(sys.modules[__name__], str_bot)
+    #reload(module)
+    cls = getattr(module,str_bot)
+    return cls(depth=depth, react_time=react_time)
 

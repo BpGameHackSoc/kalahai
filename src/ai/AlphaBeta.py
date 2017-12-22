@@ -5,15 +5,20 @@ from copy import deepcopy
 from . import Bot
 
 
+
+
 class AlphaBeta(Bot.Bot):
-    def __init__(self, depth, react_time=1):
+    def __init__(self, depth, react_time=None):
         if react_time is not None:
             raise NotImplementedError("React time for AplhaBeta agent is not implemented")
         else:
             super().__init__(react_time)
-        self.search = AlphaBetaSearch(depth)
+        self.search = AlphaBetaSearch(depth,self.__evalute)
         self.name = 'AlphaBeta'
         self.init_counters()
+
+    def get_name(self):
+        return type(self).__name__
 
     def init_counters(self):
         self.move_num = 0
@@ -34,12 +39,21 @@ class AlphaBeta(Bot.Bot):
     def get_avg_evals(self):
         return self.nodes_evaled_agg/self.move_num
 
-
+    def __evalute(self, state):
+        """
+        Default scoring function
+        :param state: State of the current game position
+        :return: Value of the position
+        """
+        south = state.board.get_store(Side.SOUTH)
+        north = state.board.get_store(Side.NORTH)
+        return south - north
 
 class AlphaBetaSearch():
-    def __init__(self, depth, show_evaled_nodes=True):
+    def __init__(self, depth, scorer, show_evaled_nodes=True):
         self.INITIAL_DEPTH = depth 
         self.eval_nodes = show_evaled_nodes
+        self.score_function = scorer
 
     def run(self, state):
         is_maximising = state.current_player == Side.SOUTH
@@ -51,7 +65,9 @@ class AlphaBetaSearch():
 
     def __maximize(self, state, depth, a, b):
         if depth == 0 or state.is_game_over():
-            return self.__evalute(state), None
+            if self.eval_nodes:
+                self.nodes_evaled += 1
+            return self.score_function(state), None
         valid_moves = state.get_valid_moves()
         score = -np.inf
         best_move = None
@@ -68,7 +84,9 @@ class AlphaBetaSearch():
     def __minimize(self, state, depth, a, b):
 
         if depth == 0 or state.is_game_over():
-            return self.__evalute(state), None
+            if self.eval_nodes:
+                self.nodes_evaled += 1
+            return self.score_function(state), None
         valid_moves = state.get_valid_moves()
         score = np.inf
         best_move = None
@@ -87,9 +105,3 @@ class AlphaBetaSearch():
         child_state.move(move_index)
         return child_state
 
-    def __evalute(self, state):
-        if self.eval_nodes:
-            self.nodes_evaled+=1
-        south = state.board.get_store(Side.SOUTH)
-        north = state.board.get_store(Side.NORTH)
-        return south - north

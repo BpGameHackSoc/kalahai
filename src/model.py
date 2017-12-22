@@ -186,6 +186,7 @@ class State(object):
         self.players = np.flip(self.players, axis=0)
     
 class Game(object):
+    """Governs the game, handling start and end. Also stores history"""
     def __init__(self, no_of_holes=6, no_of_seeds=4, pie_rule=False, print_results=True):
         self.history = []
         self.current_state = State(no_of_holes, no_of_seeds)
@@ -193,6 +194,7 @@ class Game(object):
         self.winner = Winner.UNKNOWN
         self.moves_made = 0
         self.is_pie_rule_on = pie_rule
+
         
     def load(self):
         pass

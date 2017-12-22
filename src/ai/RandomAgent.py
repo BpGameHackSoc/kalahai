@@ -3,7 +3,8 @@ import model
 from . import Bot
 
 class RandomAgent(Bot.Bot):
-    def __init__(self,react_time=1):
+    def __init__(self,**kwargs):
+        react_time = kwargs["react_time"]
         super().__init__(react_time)
         self.name = 'RandomAgent'
         self.init_counters()
