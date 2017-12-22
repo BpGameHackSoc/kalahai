@@ -13,12 +13,9 @@ class AlphaBeta(Bot.Bot):
             raise NotImplementedError("React time for AplhaBeta agent is not implemented")
         else:
             super().__init__(react_time)
-        self.search = AlphaBetaSearch(depth,self.__evalute)
+        self.search = AlphaBetaSearch(depth,self.evaluate)
         self.name = 'AlphaBeta'
         self.init_counters()
-
-    def get_name(self):
-        return type(self).__name__
 
     def init_counters(self):
         self.move_num = 0
@@ -39,7 +36,7 @@ class AlphaBeta(Bot.Bot):
     def get_avg_evals(self):
         return self.nodes_evaled_agg/self.move_num
 
-    def __evalute(self, state):
+    def evaluate(self, state):
         """
         Default scoring function
         :param state: State of the current game position
@@ -68,12 +65,17 @@ class AlphaBetaSearch():
             if self.eval_nodes:
                 self.nodes_evaled += 1
             return self.score_function(state), None
+        entering_player = state.current_player
         valid_moves = state.get_valid_moves()
         score = -np.inf
         best_move = None
         for move in valid_moves:
             child_state = self.__get_child(state, move)
-            score = max(score, self.__minimize(child_state, depth-1, a, b)[0])
+            if child_state.current_player != entering_player:
+                child_score = self.__minimize(child_state, depth - 1, a, b)[0]
+            else:
+                child_score = self.__maximize(child_state, depth - 1, a, b)[0]
+            score = max(score, child_score)
             if score > a:
                 a = score
                 best_move = move
@@ -82,17 +84,21 @@ class AlphaBetaSearch():
         return score, best_move
 
     def __minimize(self, state, depth, a, b):
-
         if depth == 0 or state.is_game_over():
             if self.eval_nodes:
                 self.nodes_evaled += 1
             return self.score_function(state), None
+        entering_player = state.current_player
         valid_moves = state.get_valid_moves()
         score = np.inf
         best_move = None
         for move in valid_moves:
             child_state = self.__get_child(state, move)
-            score = min(score, self.__maximize(child_state, depth-1, a, b)[0])
+            if child_state.current_player != entering_player:
+                child_score = self.__maximize(child_state, depth - 1, a, b)[0]
+            else:
+                child_score = self.__minimize(child_state, depth - 1, a, b)[0]
+            score = min(score, child_score)
             if score < b:
                 b = score
                 best_move = move

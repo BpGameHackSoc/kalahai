@@ -6,17 +6,22 @@ import copy
 class MoveException(Exception):
     pass
 
+class Side(IntEnum):
+    SOUTH = 0
+    NORTH = 1
+    def opposite_side(self):
+        return self.NORTH if self == self.SOUTH else self.SOUTH
+
 class Winner(IntEnum):
     SOUTH = 0
     NORTH = 1
     DRAW = 2
     UNKNOWN = 3
+    def is_draw(self):
+        return self == self.DRAW
 
-class Side(IntEnum):
-    SOUTH = 0
-    NORTH = 1
-    def opposite(self):
-        return self.NORTH if self == self.SOUTH else self.SOUTH
+
+
     
 class Board(object):
     """Represents a kalah board. Responsible for validating moves and executing them."""
@@ -38,7 +43,7 @@ class Board(object):
         # Check if opposite side is zero
         self.__capture(finish_index, side)
         
-        return side.opposite()
+        return side.opposite_side()
     
     def __capture(self, finish_index, side):
         n = self.buckets.size
@@ -112,7 +117,7 @@ class Board(object):
 class State(object):
     """Acts as interface between board actions and players. Stores board and player states."""
     
-    def __init__(self, no_of_holes=6, no_of_seeds=4):       
+    def __init__(self, no_of_holes=6, no_of_seeds=4):
         self.set_starting_position(no_of_holes, no_of_seeds)
         self.used_pie_rule = False
         self.players = np.array([Side.SOUTH, Side.NORTH])
@@ -169,9 +174,12 @@ class State(object):
         
     def show(self):
         print(self.board.to_str())
+
+    def get_current_player_side(self):
+        return self.current_player
         
     def __change_current_player(self):
-        self.current_player = self.current_player.opposite()
+        self.current_player = self.current_player.opposite_side()
         
         
     def __validate_index(self, index, side):
@@ -187,13 +195,14 @@ class State(object):
     
 class Game(object):
     """Governs the game, handling start and end. Also stores history"""
-    def __init__(self, no_of_holes=6, no_of_seeds=4, pie_rule=False, print_results=True):
+    def __init__(self, no_of_holes=6, no_of_seeds=4, pie_rule=False, print_results=True,player2_starts=False):
         self.history = []
         self.current_state = State(no_of_holes, no_of_seeds)
         self.print_results = print_results
         self.winner = Winner.UNKNOWN
         self.moves_made = 0
         self.is_pie_rule_on = pie_rule
+        self.player2_first=  player2_starts
 
         
     def load(self):
@@ -201,6 +210,13 @@ class Game(object):
     
     def save(self):
         pass
+
+    def side_index(self,side):
+        if self.player2_first:
+            bool_val =  not side is Side.NORTH
+        else:
+            bool_val =  side is Side.NORTH
+        return int(bool_val)
 
     def get_valid_moves(self):
         pseudo_valid_moves = self.current_state.get_valid_moves()
@@ -227,13 +243,24 @@ class Game(object):
          
     def game_over(self):
         return self.current_state.is_game_over()
+
+    def get_winner_side(self):
+        return self.winner
+
+
+    def get_current_player_index(self):
+        return self.side_index(self.current_state.get_current_player_side())
     
     def __announce_winner(self):
         self.current_state.show()
         south_seeds, north_seeds = self.current_state.get_seed_sum()
-        print('Game over. Winner is: ' + str(self.winner), end=' ')
+        winner = self.side_index(self.winner)
+        if winner is not Winner.DRAW:
+            winner_name = "Player" + str(self.side_index(winner))
+            print('Game over. Winner is: ' + winner_name, end=' ')
+        else:
+            print("Game has ended. The sides has drawn." )
         print('(' + str(south_seeds) + ' - ' + str(north_seeds) + ')')
-
 
 
         

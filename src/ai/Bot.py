@@ -6,6 +6,9 @@ class Bot(metaclass=ABCMeta):
     def __init__(self, react_time):
         self.reaction_time = react_time
 
+    def get_name(self):
+        return type(self).__name__
+
     @abstractmethod
     def move(self, state):
         pass

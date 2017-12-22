@@ -8,4 +8,4 @@ except:
     engine1="AlphaBeta"
     engine2 = "AlphaBetaOwnSeeds"
 
-referee.run_competition(engine1, engine2, depth1=6, depth2=6, no_of_games=10)
+referee.run_competition(engine1, engine2, depth1=2, depth2=2, no_of_games=2)
