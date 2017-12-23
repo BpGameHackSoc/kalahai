@@ -10,4 +10,4 @@ except:
 
 depth = 2
 
-referee.run_competition(engine1, engine2, depth1=depth, depth2=depth, no_of_games=2,print_states=True)
+referee.run_competition("AlphaBeta", "AlphaBetaOwnSeeds", depth1=3, depth2=3, no_of_games=2,test_openings=True)

@@ -197,12 +197,12 @@ class Game(object):
     """Governs the game, handling start and end. Also stores history"""
     def __init__(self, no_of_holes=6, no_of_seeds=4, pie_rule=False, print_results=True,player2_starts=False):
         self.history = []
-        self.current_state = State(no_of_holes, no_of_seeds)
+        self.current_state = State(no_of_holes=no_of_holes,no_of_seeds=no_of_seeds)
         self.print_results = print_results
         self.winner = Winner.UNKNOWN
         self.moves_made = 0
         self.is_pie_rule_on = pie_rule
-        self.player2_first=  player2_starts
+        self.player2_south=  player2_starts
 
         
     def load(self):
@@ -211,8 +211,18 @@ class Game(object):
     def save(self):
         pass
 
+    def set_player1_current(self):
+        if self.get_current_player_index() != 1:
+            self.player2_south = not self.player2_south
+
+    def set_player2_current(self):
+        if self.get_current_player_index() != 2:
+            self.player2_south = not self.player2_south
+
+
+
     def side_index(self,side):
-        if self.player2_first:
+        if self.player2_south:
             bool_val =  not side is Side.NORTH
         else:
             bool_val =  side is Side.NORTH
@@ -261,6 +271,18 @@ class Game(object):
         else:
             print("Game has ended. The sides has drawn." )
         print('(' + str(south_seeds) + ' - ' + str(north_seeds) + ')')
+
+
+    def fork_game(self, moves=None,use_all_moves=False):
+        forked_games = []
+        if use_all_moves:
+            moves  = self.get_valid_moves()
+        for move in moves:
+            new_game = copy.deepcopy(self)
+            new_game.apply_move(move)
+            forked_games.append(new_game)
+        return forked_games
+
 
 
         
