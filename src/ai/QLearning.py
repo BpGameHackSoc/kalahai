@@ -3,16 +3,18 @@ import model
 from model import Side
 from . import Bot
 
+from copy import deepcopy,copy
+import math
 from keras.models import Sequential
-from keras.layers import Dense, Activation, LSTM, Flatten
-from keras.utils import to_categorical
+from keras.layers import Dense, Activation, LSTM, Flatten,Dropout
+from keras.utils import to_categorical,plot_model
 from keras.models import load_model
 
 MODEL_PATH = 'res/networks/qlearning_sample.h5'
 
 class QLearningAgent(Bot.Bot):
-    def __init__(self, nueral_network_path, train_mode=False, T=1):
-        self.model = load_model(nueral_network_path)
+    def __init__(self, neural_network_path, train_mode=False, T=1):
+        self.model = load_model(neural_network_path)
         self.name = 'QLearningAgent'
         self.train_mode = train_mode
         self.T = T
@@ -27,8 +29,8 @@ class QLearningAgent(Bot.Bot):
 
     # In train mode, we include some exploration, while in normal mode,
     # we simply choose the node with the highest win-probability
-    def __chose_value(self, values):
-        if train_mode:
+    def __choose_value(self, values):
+        if self.train_mode:
             probabilities = self.__softmax(values)
             return np.random.choice(values, p=probabilities)
         else:
@@ -57,7 +59,7 @@ class QMemory:
         n = min(self.batch_size, len(self.memory_x))
         all_index = np.arange(len(self.memory_x))
         indexes = np.random_choice(all_index, n, replace=False)
-        return np.array(memory_x)[indexes], np.array(memory_y)[indexes]
+        return np.array(self.memory_x)[indexes], np.array(self.memory_y)[indexes]
 
 class QGroup:
     def __init__(self, state, move):
@@ -88,14 +90,6 @@ class QLearningTrainer:
         plot_model(model, to_file='res/model.png', show_shapes=True)
         return model
 
-    def train(self):
-        T = 1000
-        decay = math.pow(1/T, 1/(self.epochs-1))
-        for i in range(self.epochs):
-            print('Epoch ' + str(i) + '...')
-            train_batch(T)
-            T *= decay
-
     def train_batch(self, T):
         self.__play_games(T)
         train_data = np.array(self.memory.random_choice())
@@ -103,6 +97,16 @@ class QLearningTrainer:
         train_x = train_data[:,0]
         train_y = train_data[:,1]
         model.train_on_batch(train_x, train_y)
+
+    def train(self):
+        T = 1000
+        decay = math.pow(1/T, 1/(self.epochs-1))
+        for i in range(self.epochs):
+            print('Epoch ' + str(i) + '...')
+            self.train_batch(T)
+            T *= decay
+
+
 
     def __play_games(self, T):
         for i in range(self.batch_size):
@@ -112,6 +116,11 @@ class QLearningTrainer:
             self.memory.add([train_x, train_y])
 
     def __game_to_inputs(self, game):
+        """
+
+        :param game:
+        :return:
+        """
         # Converting a game into inputs for the neural net (states)
         # 1. Each state is one input (game.history)
         # 2. A state means the board, current_player, and pie_rule_available
@@ -130,6 +139,11 @@ class QLearningTrainer:
         pass
 
     def __play_one_game(self, settings):
+        """Make agent play a game against itself and return the history of the game.
+
+        :param settings: parameters of the game and the agent
+        :return: move sequence of the game, the history attribute of game_obj
+        """
         buckets, seeds, pie_rule, temperature = settings
         game_obj = model.Game(buckets, seeds, pie_rule, print_results=False)
         bot1 = QLearningAgent(MODEL_PATH, train_mode=True, T=temperature)
@@ -140,5 +154,5 @@ class QLearningTrainer:
             current_bot = players[current_player_index]
             move_index = current_bot.move(game_obj.current_state)
             game_obj.apply_move(move_index)
-        return game_obj.history()
+        return game_obj.history
 
