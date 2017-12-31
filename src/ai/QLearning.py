@@ -92,11 +92,19 @@ class QLearningTrainer:
 
     def train_batch(self, T):
         self.__play_games(T)
-        train_data = np.array(self.memory.random_choice())
-        train_data = train_data.reshape(1, -1, train_data.shape[2]).squeeze(0)
-        train_x = train_data[:,0]
-        train_y = train_data[:,1]
-        model.train_on_batch(train_x, train_y)
+        train_x, train_y = np.array(self.memory.random_choice())
+        train_x = train_x.reshape(1, -1).squeeze(0)
+        train_x = train_x.reshape(1, -1).squeeze(0)
+        # TEST DATA BEFORE RUNNING TRAINING!!!!
+        print('SHAPES')
+        print(train_x.shape)
+        print(train_y.shape)
+        print('TRAIN_X')
+        print(train_x)
+        print('TRAIN_Y')
+        print(train_y)
+
+        # model.train_on_batch(train_x, train_y)
 
     def train(self):
         T = 1000
@@ -113,7 +121,7 @@ class QLearningTrainer:
             game = self.__play_one_game([7, 4, True, T])
             train_x = self.__game_to_inputs(game)
             train_y = self.__game_to_outputs(game)
-            self.memory.add([train_x, train_y])
+            self.memory.add(train_x, train_y)
 
     def __game_to_inputs(self, game):
         """
@@ -125,7 +133,28 @@ class QLearningTrainer:
         # 1. Each state is one input (game.history)
         # 2. A state means the board, current_player, and pie_rule_available
         # 3. Output shape should look like (no_of_states, no_of_inputs)
-        pass
+        states = []
+        for state, move in game.history():
+            current_player = np.array([(state.current_player == Side.SOUTH) * 1])
+            board = state.board.buckets
+            states.append(np.concatenate((current_player, board)))
+        return np.array(states)
+
+    def __change_q_values(self, original, indexes, target):
+        for count, index in enumerate(indexes):
+            original[count][index] = target
+        return original
+
+    def __determine_target(self, game):
+        winner = game.get_winner_side()
+        if winner == Side.SOUTH:
+            return 1
+        elif winner == Side.NORTH:
+            return -1
+        elif winner == Side.DRAW:
+            retrun 0
+        else:
+            raise ValueError('There is no winner just yet: ' + str(winner))  
 
     def __game_to_output(self, game):
         # Converting a game into outputs for the neural net (actions)
@@ -136,7 +165,18 @@ class QLearningTrainer:
         #    ---> Leave the rest of the outputs as they are
         # 4. Return the new outcome
         # 5. Shape should look like (no_of_states, no_of_all_moves)
-        pass
+
+        inputs = self.__game_to_inputs(game)
+        predictions = model.predict(inputs)
+        history = np.array(game.history)
+        target = self.__determine_target(game)
+        moves = np.hstack(history[:,1]).reshape(-1, len(history[0,1]))
+        # moves : should be a numpy array of moves -> e.g. [0, 4, 2, 5]
+        # NOTE
+        # Probably there's a mess around local/global moves
+        # (north move can be 3, but globally its 3+7=10)
+        train_y = self.__change_q_values(predictions, moves, target)
+        return train_y
 
     def __play_one_game(self, settings):
         """Make agent play a game against itself and return the history of the game.
