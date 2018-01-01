@@ -126,8 +126,6 @@ class State(object):
         self.current_player = Side.SOUTH
         self.board = Board(no_of_holes, no_of_seeds)
         self.min_seeds_to_win = no_of_holes * no_of_seeds
-
-    def to_fen(self):
         
               
     def is_game_over(self):      
@@ -238,14 +236,14 @@ class Game(object):
         return valid_moves
     
     def apply_move(self, index):
-        self.history.append([copy.deepcopy(self.current_state), copy.deepcopy(self.index)])
+        self.history.append([copy.deepcopy(self.current_state), index])
         if index == -1 and not self.is_pie_rule_on:
             print ('You cannot use pie rule now.')
             return
         self.current_state.move(index)
         self.moves_made += 1
         if (self.game_over()):
-            self.history.append([copy.deepcopy(self.current_state), copy.deepcopy(self.index)])
+            self.history.append([copy.deepcopy(self.current_state), None])
             self.winner = self.current_state.get_winner()
             if self.print_results:
                 self.__announce_winner()
